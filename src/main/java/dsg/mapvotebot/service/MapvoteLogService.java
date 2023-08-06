@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.chrono.ISOChronology;
@@ -14,9 +15,8 @@ import org.joda.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
 
 @Setter
 @Getter
@@ -25,20 +25,31 @@ import java.util.Locale;
 public class MapvoteLogService {
     private final MapvoteLogRepository mapvoteLogRepository;
 
-    public EmbedBuilder createEmbedMapvoteLog(){
+    public List<MessageEmbed> createEmbedMapvoteLog(){
 
         DateTimeFormatter fmt = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm");
 
-        EmbedBuilder eb = new EmbedBuilder();
+        ArrayList<String> mapvoteLogsList = buildLogString();
+        List<MessageEmbed> embeds = new ArrayList<>();
 
-        eb.setTitle("Mapvote Historie "+ fmt.print(getDateTimeNow().minusDays(7).plusHours(2)) +" - "+ fmt.print(getDateTimeNow().plusHours(2)), null);
-        eb.setColor(new Color(255, 196, 12));
-        eb.setDescription(buildLogString());
-        return eb;
+        for (String s : mapvoteLogsList) {
+            EmbedBuilder eb = new EmbedBuilder();
+
+            eb.setTitle("Mapvote Historie " + fmt.print(getDateTimeNow().minusDays(7).plusHours(2)) + " - " + fmt.print(getDateTimeNow().plusHours(2)), null);
+            eb.setColor(new Color(255, 196, 12));
+            eb.setDescription(s);
+            embeds.add(eb.build());
+        }
+
+        return embeds;
     }
 
-    private String buildLogString(){
+    private ArrayList<String> buildLogString(){
+
         List<MapvoteLog> mapvoteLogs = mapvoteLogRepository.findAll();
+
+        ArrayList<String> mapvoteLogsList = new ArrayList<>();
+        int i = 0;
 
         DateTime dateTimeNowUTC = getDateTimeNow();
 
@@ -64,8 +75,19 @@ public class MapvoteLogService {
                                             "**Layer3:** " + mapvoteLog.getLayer3() + " **Votes:** " + mapvoteLog.getLayer3Votes()+ "\n\n"
                 );
             }
+
+            if (logEntrys.length() > 3500) {
+                mapvoteLogsList.add(i, logEntrys);
+                i = i + 1;
+                logEntrys = "";
+            }
         }
-        return logEntrys;
+
+            if (mapvoteLogsList.size() == 0 || logEntrys.length() > 0) {
+                mapvoteLogsList.add(logEntrys);
+            }
+
+        return mapvoteLogsList;
     }
 
     private DateTime getDateTimeNow(){

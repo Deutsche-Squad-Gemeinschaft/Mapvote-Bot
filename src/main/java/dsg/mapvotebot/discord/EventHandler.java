@@ -65,7 +65,7 @@ public class EventHandler extends ListenerAdapter {
 
 
         }else if (event.getName().equals("mapvote-history")) {
-            event.getInteraction().replyEmbeds(mapvoteLogService.createEmbedMapvoteLog().build()).setEphemeral(true).queue();
+            event.getInteraction().replyEmbeds(mapvoteLogService.createEmbedMapvoteLog()).setEphemeral(true).queue();
         }
     }
 
