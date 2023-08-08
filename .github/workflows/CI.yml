@@ -27,7 +27,7 @@ jobs:
               cp target/*.jar build    
           
        - name: Upload artifact
-         uses: actions/upload-artifact@v1
+         uses: actions/upload-artifact@v3
          with:
             name: Build
             path: build/
