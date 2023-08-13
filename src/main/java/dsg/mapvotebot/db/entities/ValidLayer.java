@@ -15,4 +15,6 @@ public class ValidLayer {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
     private String layer;
+    private String teamOne;
+    private String teamTwo;
 }

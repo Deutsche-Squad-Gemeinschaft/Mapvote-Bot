@@ -2,6 +2,8 @@ package dsg.mapvotebot.api.controller;
 
 import dsg.mapvotebot.api.model.PlayerMessage;
 import dsg.mapvotebot.config.Configuration;
+import dsg.mapvotebot.db.entities.ValidLayer;
+import dsg.mapvotebot.db.repositories.ValidLayerRepository;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +22,7 @@ import java.util.List;
 public class BattlemetricsController {
 
     private final Configuration configuration;
+    private final ValidLayerRepository validLayerRepository;
 
     public List<PlayerMessage> getChatData() throws IOException {
 
@@ -56,7 +59,8 @@ public class BattlemetricsController {
         return playerMessages;
     }
 
-    public void sendMapvoteBroadcast(String layer1, String layer2, String layer3, String timer){
+    public void sendMapvoteBroadcast(ValidLayer layer1, ValidLayer layer2, ValidLayer layer3, String timer){
+
         try {
             // Construct the URL to send the RCON command
             String rconUrl = "https://api.battlemetrics.com/servers/3219649/command";
@@ -76,7 +80,7 @@ public class BattlemetricsController {
                     "    \"attributes\": {\n" +
                     "        \"command\": \"squad:broadcast\",\n" +
                     "        \"options\": {\n" +
-                    "            \"message\": \"Mapvote! (1) "+layer1+" (2) "+layer2+" (3) "+layer3+" | noch "+timer+"sec!\"\n" +
+                    "            \"message\": \"Mapvote! (1) "+layer1.getLayer()+" "+layer1.getTeamOne()+"-"+layer1.getTeamTwo()+" (2) "+layer2.getLayer()+" "+layer2.getTeamOne()+"-"+layer2.getTeamTwo()+" (3) "+layer3.getLayer()+" "+layer3.getTeamOne()+"-"+layer3.getTeamTwo()+" | noch "+timer+"sec!\"\n" +
                     "            }\n" +
                     "    }\n" +
                     "  }\n" +

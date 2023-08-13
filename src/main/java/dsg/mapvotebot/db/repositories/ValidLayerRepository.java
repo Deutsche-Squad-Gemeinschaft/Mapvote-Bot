@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ValidLayerRepository extends JpaRepository<ValidLayer, Integer> {
+    ValidLayer findByLayer(String layer);
 }
