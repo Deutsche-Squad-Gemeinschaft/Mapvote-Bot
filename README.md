@@ -8,7 +8,7 @@ A Discord bot which organizes mapvotes for the DSG Squad Gameserver
 The bot is provided as a Docker image on the GitHub container registry. You can use the image directly throught the command line or use an docker-compose.yml to save your configuration as test-file.
 
 Docker
-```
+```bash
 docker run \
   -e DISCORD_TOKEN=${DISCORD_TOKEN} \
   -e BATTLEMETRICS_TOKEN=${BATTLEMETRICS_TOKEN} \
@@ -16,7 +16,7 @@ docker run \
 ```
 
 Docker Compose
-```
+```yml
 version: '3'
 services:
   bot:
