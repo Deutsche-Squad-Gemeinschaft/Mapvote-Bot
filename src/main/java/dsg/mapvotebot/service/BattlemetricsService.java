@@ -34,6 +34,7 @@ public class BattlemetricsService {
     private final BattlemetricsController battlemetricsController;
     private final MapvoteLogRepository mapvoteLogRepository;
     private final ValidLayerRepository validLayerRepository;
+    private final GlobalLayerRankingService globalLayerRankingService;
     private List<ValidLayer> validLayers;
     private boolean mapvoteRunning;
 
@@ -172,6 +173,8 @@ public class BattlemetricsService {
             mapvoteLog.setLayer2Votes(mapvoteModel.getLayer2Votes());
             mapvoteLog.setLayer3Votes(mapvoteModel.getLayer3Votes());
             mapvoteLogRepository.save(mapvoteLog);
+
+            globalLayerRankingService.evaluateMapvoteRanking(mapvoteModel.getLayer1(), mapvotes.get("1"), mapvoteModel.getLayer2(), mapvotes.get("2"), mapvoteModel.getLayer3(), mapvotes.get("3"));
         }
 
         return mapvoteModel;
@@ -182,6 +185,10 @@ public class BattlemetricsService {
                 .newScheduledThreadPool(1);
 
         mapvoteRunning = true;
+
+        ValidLayer validLayer1 = validLayerRepository.findByLayer(mapvoteModel.getLayer1());
+        ValidLayer validLayer2 = validLayerRepository.findByLayer(mapvoteModel.getLayer2());
+        ValidLayer validLayer3 = validLayerRepository.findByLayer(mapvoteModel.getLayer3());
 
         AtomicInteger secondsLeft = new AtomicInteger(mapvoteModel.getTimeLeftAtFirstBroadcast());
 
@@ -199,23 +206,23 @@ public class BattlemetricsService {
                     }
 
                     if (secondsLeft.get() == mapvoteModel.getTimeLeftAtFirstBroadcast()) {
-                        battlemetricsController.sendMapvoteBroadcast(mapvoteModel.getLayer1(), mapvoteModel.getLayer2(), mapvoteModel.getLayer3(), String.valueOf(mapvoteModel.getTimeLeftAtFirstBroadcast()));
+                        battlemetricsController.sendMapvoteBroadcast(validLayer1, validLayer2, validLayer3, String.valueOf(mapvoteModel.getTimeLeftAtFirstBroadcast()));
                     }
 
                     if (secondsLeft.get() == mapvoteModel.getTimeLeftAtSecondBroadcast()) {
-                        battlemetricsController.sendMapvoteBroadcast(mapvoteModel.getLayer1(), mapvoteModel.getLayer2(), mapvoteModel.getLayer3(), String.valueOf(mapvoteModel.getTimeLeftAtSecondBroadcast()));
+                        battlemetricsController.sendMapvoteBroadcast(validLayer1, validLayer2, validLayer3, String.valueOf(mapvoteModel.getTimeLeftAtSecondBroadcast()));
                     }
 
                     if (secondsLeft.get() == mapvoteModel.getTimeLeftAtThirdBroadcast()) {
-                        battlemetricsController.sendMapvoteBroadcast(mapvoteModel.getLayer1(), mapvoteModel.getLayer2(), mapvoteModel.getLayer3(), String.valueOf(mapvoteModel.getTimeLeftAtThirdBroadcast()));
+                        battlemetricsController.sendMapvoteBroadcast(validLayer1, validLayer2, validLayer3, String.valueOf(mapvoteModel.getTimeLeftAtThirdBroadcast()));
                     }
 
                     if (secondsLeft.get() == mapvoteModel.getTimeLeftAtFourthBroadcast()) {
-                        battlemetricsController.sendMapvoteBroadcast(mapvoteModel.getLayer1(), mapvoteModel.getLayer2(), mapvoteModel.getLayer3(), String.valueOf(mapvoteModel.getTimeLeftAtFourthBroadcast()));
+                        battlemetricsController.sendMapvoteBroadcast(validLayer1, validLayer2, validLayer3, String.valueOf(mapvoteModel.getTimeLeftAtFourthBroadcast()));
                     }
 
                     if (secondsLeft.get() == mapvoteModel.getTimeLeftAtFifthBroadcast()) {
-                        battlemetricsController.sendMapvoteBroadcast(mapvoteModel.getLayer1(), mapvoteModel.getLayer2(), mapvoteModel.getLayer3(), String.valueOf(mapvoteModel.getTimeLeftAtFifthBroadcast()));
+                        battlemetricsController.sendMapvoteBroadcast(validLayer1, validLayer2, validLayer3, String.valueOf(mapvoteModel.getTimeLeftAtFifthBroadcast()));
                     }
 
                     secondsLeft.getAndDecrement();
