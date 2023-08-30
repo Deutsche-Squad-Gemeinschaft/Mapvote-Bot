@@ -198,7 +198,7 @@ public class BattlemetricsController {
                     "    \"attributes\": {\n" +
                     "        \"command\": \"squad:setNextMap\",\n" +
                     "        \"options\": {\n" +
-                    "            \"layer\": \"" + layer + "\"\n" +
+                    "            \"map\": \"" + layer + "\"\n" +
                     "            }\n" +
                     "    }\n" +
                     "  }\n" +
