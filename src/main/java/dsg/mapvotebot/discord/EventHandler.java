@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Handles all discord specific events that happen at runtime
+ */
 @Component
 @RequiredArgsConstructor
 public class EventHandler extends ListenerAdapter {
@@ -25,12 +28,22 @@ public class EventHandler extends ListenerAdapter {
     private final BattlemetricsService battlemetricsService;
     private final MapvoteLogService mapvoteLogService;
 
+    /**
+     * Occurs when a slash command was executed. The event name has to be filtered to assign the specific slash command to the event.
+     *
+     * @param event automatic handed over event which contains event-details
+     */
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getName().equals("starte-mapvote")) {
 
             if(battlemetricsService.isMapvoteRunning()){
                 event.reply("Es läuft bereits ein Mapvote!").setEphemeral(true).queue();
+                return;
+            }
+
+            if(!battlemetricsService.isServerLive()){
+                event.reply("Du kannst keinen manuellen Mapvote für die erste Live Runde machen, da dies automatisiert geschieht!").setEphemeral(true).queue();
                 return;
             }
 
@@ -60,7 +73,7 @@ public class EventHandler extends ListenerAdapter {
                 return;
             }
 
-            battlemetricsService.startScheduledMapvoteBroadcasts(mapvoteModel);
+            battlemetricsService.startScheduledMapvoteBroadcasts(mapvoteModel, false);
             event.reply("Mapvote initiiert. Lehn dich zurück und genieß' die Show!").setEphemeral(true).queue();
 
 
@@ -69,6 +82,11 @@ public class EventHandler extends ListenerAdapter {
         }
     }
 
+    /**
+     * Updates all usable slash commands when guild is ready
+     *
+     * @param event automatic handed over event which contains event-details
+     */
     @Override
     public void onGuildReady(GuildReadyEvent event) {
 

@@ -18,6 +18,9 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+/**
+ * Contains all methods which interfere with the mapvote log.
+ */
 @Setter
 @Getter
 @Service
@@ -25,6 +28,11 @@ import java.util.List;
 public class MapvoteLogService {
     private final MapvoteLogRepository mapvoteLogRepository;
 
+    /**
+     * Creates embeds that display the mapvote log from the past 7 days.
+     *
+     * @return List with discord embeds
+     */
     public List<MessageEmbed> createEmbedMapvoteLog(){
 
         DateTimeFormatter fmt = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm");
@@ -44,6 +52,12 @@ public class MapvoteLogService {
         return embeds;
     }
 
+    /**
+     * Builds strings for every log entry and concats them until a character limit is reached.
+     * If limit is reached a new string gets created and added to list.
+     *
+     * @return List of log entries.
+     */
     private ArrayList<String> buildLogString(){
 
         List<MapvoteLog> mapvoteLogs = mapvoteLogRepository.findAll();
@@ -90,6 +104,11 @@ public class MapvoteLogService {
         return mapvoteLogsList;
     }
 
+    /**
+     * Gets the current date time for timezone Europe/Berlin
+     *
+     * @return Current Date Time
+     */
     private DateTime getDateTimeNow(){
         Date date = new Date();
         DateTimeZone timeZone = DateTimeZone.forID("Europe/Berlin");
