@@ -20,6 +20,6 @@ public class ServerInfo {
     /** Name of Layer currently played. */
     private String layer;
 
-    /** For how long the current layer is played. */
+    /** For how long the current layer is played in seconds.  */
     private int playTime;
 }

@@ -1,16 +1,19 @@
 package dsg.mapvotebot.service;
 
 import dsg.mapvotebot.db.entities.GlobalLayerRanking;
+import dsg.mapvotebot.db.entities.LastLoggedGamemodes;
+import dsg.mapvotebot.db.entities.LastLoggedMaps;
 import dsg.mapvotebot.db.repositories.GlobalLayerRankingRepository;
+import dsg.mapvotebot.db.repositories.LastLoggedGamemodesRepository;
+import dsg.mapvotebot.db.repositories.LastLoggedMapsRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Contains all methods which interfere with the elo ranking system.
@@ -21,6 +24,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class GlobalLayerRankingService {
     private final GlobalLayerRankingRepository globalLayerRankingRepository;
+    private final LastLoggedMapsRepository lastLoggedMapsRepository;
+    private final LastLoggedGamemodesRepository lastLoggedGamemodesRepository;
 
     /**
      * Updates layer elo and details in database based on the amount of votes the layers got in a mapvote.
@@ -176,7 +181,7 @@ public class GlobalLayerRankingService {
         boolean mapsSelected = false;
         int run = 1;
         GlobalLayerRanking randomMap;
-        List<GlobalLayerRanking> decimatedPossibleLayer = decimatePossibleLayerByAverageElo(possibleLayer);
+        List<GlobalLayerRanking> decimatedPossibleLayer = decimatePossibleLayerByAverageElo(possibleLayer, 80);
 
         while (!mapsSelected) {
             boolean alreadyInList = false;
@@ -194,7 +199,7 @@ public class GlobalLayerRankingService {
                 randomMap = lowAppearanceLayer.get(rand - 1);
             }
 
-            //check if map of layer is already in list or layer is already is in list to prevent duplication and provide more variety
+            //check if map of layer is already in list or layer is already in list to prevent duplication and provide more variety
             if (!firstLiveMaps.contains(randomMap)) {
                 for (GlobalLayerRanking firstLiveMap : firstLiveMaps) {
                     if (firstLiveMap.getMap().equals(randomMap.getMap())) {
@@ -209,7 +214,7 @@ public class GlobalLayerRankingService {
 
             //new possibility to pick from layer above or below average elo, so it cant get stuck  (e.g. all layers above average elo cant be picked because of same map)
             switch (firstLiveMaps.size()) {
-                case 1, 2 -> decimatedPossibleLayer = decimatePossibleLayerByAverageElo(possibleLayer);
+                case 1, 2 -> decimatedPossibleLayer = decimatePossibleLayerByAverageElo(possibleLayer, 80);
                 case 3 -> mapsSelected = true;
             }
             run++;
@@ -217,7 +222,205 @@ public class GlobalLayerRankingService {
         return firstLiveMaps;
     }
 
+    public List<GlobalLayerRanking> selectLiveMaps(boolean goodConditions) {
+        List<GlobalLayerRanking> liveMaps = new ArrayList<>();
+        List<GlobalLayerRanking> possibleAllLayer = globalLayerRankingRepository.findAllByFirstLiveMapIsFalseAndPlayableIsTrueAndSeedingIsFalse();
+        List<GlobalLayerRanking> filteredPossibleAllLayer = filterByLastPlayedMaps(new ArrayList<>(possibleAllLayer));
 
+        List<GlobalLayerRanking> possibleRAASLayer = getRAASLayer(new ArrayList<>(filteredPossibleAllLayer));
+        List<GlobalLayerRanking> possibleSpecialLayer = getSpecialLayer(new ArrayList<>(filteredPossibleAllLayer));
+
+        List<GlobalLayerRanking> lowAppearanceRAASLayer = extractLayerWithLowAppearance(possibleRAASLayer);
+        List<GlobalLayerRanking> lowAppearanceSpecialLayer = extractLayerWithLowAppearance(possibleSpecialLayer);
+
+        int min = 1;
+        boolean mapsSelected = false;
+        int run = 1;
+        GlobalLayerRanking randomMap;
+
+        if(goodConditions && checkIfLastPlayedGamemodesAllSame()){
+            //code for two special layer
+            List<GlobalLayerRanking> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 100);
+            List<GlobalLayerRanking> decimatedPossibleSpecialLayer = decimatePossibleLayerByAverageElo(possibleSpecialLayer, 80);
+
+            int max = decimatedPossibleRAASLayer.size();
+            int range = max - min + 1;
+            int rand = (int) (Math.random() * range) + min;
+            randomMap = decimatedPossibleRAASLayer.get(rand - 1);
+            liveMaps.add(randomMap);
+
+            while (!mapsSelected) {
+                boolean alreadyInList = false;
+
+                //make sure that layer with low appearance get picked. Otherwise, pick layer based on elo. (This ensures that new layer will get the opportunity to be played more after update)
+                if (run >= lowAppearanceSpecialLayer.size()) {
+                    max = decimatedPossibleSpecialLayer.size();
+                    range = max - min + 1;
+                    rand = (int) (Math.random() * range) + min;
+                    randomMap = decimatedPossibleSpecialLayer.get(rand - 1);
+                } else {
+                    max = lowAppearanceSpecialLayer.size();
+                    range = max - min + 1;
+                    rand = (int) (Math.random() * range) + min;
+                    randomMap = lowAppearanceSpecialLayer.get(rand - 1);
+                }
+
+                //check if map of layer is already in list or layer is already in list to prevent duplication and provide more variety
+                if (!liveMaps.contains(randomMap)) {
+                    for (GlobalLayerRanking liveMap : liveMaps) {
+                        if (liveMap.getMap().equals(randomMap.getMap())) {
+                            alreadyInList = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyInList) {
+                        liveMaps.add(randomMap);
+                    }
+                }
+
+                //new possibility to pick from layer above or below average elo, so it cant get stuck  (e.g. all layers above average elo cant be picked because of same map)
+                switch (liveMaps.size()) {
+                    case 1, 2 -> decimatedPossibleSpecialLayer = decimatePossibleLayerByAverageElo(possibleSpecialLayer, 80);
+                    case 3 -> mapsSelected = true;
+                }
+                run++;
+            }
+            return liveMaps;
+
+        }else if (goodConditions) {
+            //code for one special layer
+            List<GlobalLayerRanking> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 80);
+            List<GlobalLayerRanking> decimatedPossibleSpecialLayer = decimatePossibleLayerByAverageElo(possibleSpecialLayer, 80);
+
+            int max = decimatedPossibleSpecialLayer.size();
+            int range = max - min + 1;
+            int rand = (int) (Math.random() * range) + min;
+            randomMap = decimatedPossibleSpecialLayer.get(rand - 1);
+            liveMaps.add(randomMap);
+
+            while (!mapsSelected) {
+                boolean alreadyInList = false;
+
+                //make sure that layer with low appearance get picked. Otherwise, pick layer based on elo. (This ensures that new layer will get the opportunity to be played more after update)
+                if (run >= lowAppearanceRAASLayer.size()) {
+                    max = decimatedPossibleRAASLayer.size();
+                    range = max - min + 1;
+                    rand = (int) (Math.random() * range) + min;
+                    randomMap = decimatedPossibleRAASLayer.get(rand - 1);
+                } else {
+                    max = lowAppearanceRAASLayer.size();
+                    range = max - min + 1;
+                    rand = (int) (Math.random() * range) + min;
+                    randomMap = lowAppearanceRAASLayer.get(rand - 1);
+                }
+
+                //check if map of layer is already in list or layer is already in list to prevent duplication and provide more variety
+                if (!liveMaps.contains(randomMap)) {
+                    for (GlobalLayerRanking liveMap : liveMaps) {
+                        if (liveMap.getMap().equals(randomMap.getMap())) {
+                            alreadyInList = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyInList) {
+                        liveMaps.add(randomMap);
+                    }
+                }
+
+                //new possibility to pick from layer above or below average elo, so it cant get stuck  (e.g. all layers above average elo cant be picked because of same map)
+                switch (liveMaps.size()) {
+                    case 1, 2 -> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 80);
+                    case 3 -> mapsSelected = true;
+                }
+                run++;
+            }
+            return liveMaps;
+
+        }else {
+            //code for just RAAS layer
+            List<GlobalLayerRanking> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 100);
+
+            while (!mapsSelected) {
+                boolean alreadyInList = false;
+
+                //pick layer based on elo
+                int max = decimatedPossibleRAASLayer.size();
+                int range = max - min + 1;
+                int rand = (int) (Math.random() * range) + min;
+                randomMap = decimatedPossibleRAASLayer.get(rand - 1);
+
+                //check if map of layer is already in list or layer is already in list to prevent duplication and provide more variety
+                if (!liveMaps.contains(randomMap)) {
+                    for (GlobalLayerRanking liveMap : liveMaps) {
+                        if (liveMap.getMap().equals(randomMap.getMap())) {
+                            alreadyInList = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyInList) {
+                        liveMaps.add(randomMap);
+                    }
+                }
+
+                //new possibility to pick from layer above or below average elo, so it cant get stuck  (e.g. all layers above average elo cant be picked because of same map)
+                switch (liveMaps.size()) {
+                    case 1, 2 -> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 99);
+                    case 3 -> mapsSelected = true;
+                }
+                run++;
+            }
+        }
+        return liveMaps;
+    }
+
+    private List<GlobalLayerRanking> getSpecialLayer(List<GlobalLayerRanking> possibleLayer){
+        possibleLayer.removeIf(possibleLayers -> possibleLayers.getLayer().contains("RAAS"));
+        return possibleLayer;
+    }
+
+    private List<GlobalLayerRanking> getRAASLayer(List<GlobalLayerRanking> possibleLayer){
+        possibleLayer.removeIf(possibleLayers -> !possibleLayers.getLayer().contains("RAAS"));
+        return possibleLayer;
+    }
+
+    private boolean checkIfLastPlayedGamemodesAllSame(){
+        LastLoggedGamemodes lastLoggedGamemodes = lastLoggedGamemodesRepository.findById(1).get();
+        String currentGamemode = lastLoggedGamemodes.getCurrentGamemode();
+        String lastGamemode = lastLoggedGamemodes.getLastGamemode();
+        String secondLastGamemode = lastLoggedGamemodes.getSecondLastGamemode();
+
+        return currentGamemode.equals(lastGamemode) && currentGamemode.equals(secondLastGamemode);
+    }
+
+    private List<GlobalLayerRanking> filterByLastPlayedMaps(List<GlobalLayerRanking> possibleLayer) {
+        LastLoggedMaps lastLoggedMaps = lastLoggedMapsRepository.findById(1).get();
+        boolean workday = false;
+
+        Date date = new Date();
+        DateTimeZone timeZone = DateTimeZone.forID("Europe/Berlin");
+        DateTime dateTime = new DateTime(date, timeZone);
+        String dayOfWeek = dateTime.dayOfWeek().getAsString();
+
+        switch (dayOfWeek) {
+            case "1", "2", "3", "4", "5" -> workday = true;
+        }
+
+        String currentMap = lastLoggedMaps.getCurrentMap();
+        String lastMap = lastLoggedMaps.getLastMap();
+        String secondLastMap = lastLoggedMaps.getSecondLastMap();
+
+        if (workday){
+
+            possibleLayer.removeIf(possibleLayers -> possibleLayers.getMap().equals(currentMap) || possibleLayers.getMap().equals(lastMap) || possibleLayers.getMap().equals(secondLastMap));
+        } else {
+            String thirdLastMap = lastLoggedMaps.getThirdLastMap();
+            String fourthLastMap = lastLoggedMaps.getFourthLastMap();
+
+            possibleLayer.removeIf(possibleLayers -> possibleLayers.getMap().equals(currentMap) || possibleLayers.getMap().equals(lastMap) || possibleLayers.getMap().equals(secondLastMap) || possibleLayers.getMap().equals(thirdLastMap) || possibleLayers.getMap().equals(fourthLastMap));
+        }
+
+        return possibleLayer;
+    }
 
     /**
      * Decimates a list of layers based on the average elo the layers have and the probability that all layers below or higher than average get eliminated from list.
@@ -226,9 +429,9 @@ public class GlobalLayerRankingService {
      * @param possibleLayer List with all layers that fit the requirements.
      * @return Decimated list with all remaining layers.
      */
-    private List<GlobalLayerRanking> decimatePossibleLayerByAverageElo(List<GlobalLayerRanking> possibleLayer){
+    private List<GlobalLayerRanking> decimatePossibleLayerByAverageElo(List<GlobalLayerRanking> possibleLayer, int probabilityForAboveAverage){
         double averageElo = calculateAverageElo(possibleLayer);
-        boolean pickLayerAboveAverageElo = calculateProbability(80);
+        boolean pickLayerAboveAverageElo = calculateProbability(probabilityForAboveAverage);
 
         List<GlobalLayerRanking> layerList = new ArrayList<>();
         for (GlobalLayerRanking layer : possibleLayer) {

@@ -15,4 +15,6 @@ public interface GlobalLayerRankingRepository extends JpaRepository<GlobalLayerR
 
     /** Used to get the pool of layers suitable to be played as the first live map. */
     List<GlobalLayerRanking> findAllByFirstLiveMapIsTrueAndPlayableIsTrue();
+
+    List<GlobalLayerRanking> findAllByFirstLiveMapIsFalseAndPlayableIsTrueAndSeedingIsFalse();
 }

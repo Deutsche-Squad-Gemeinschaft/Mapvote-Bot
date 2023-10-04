@@ -42,11 +42,8 @@ public class EventHandler extends ListenerAdapter {
                 return;
             }
 
-            if(!battlemetricsService.isServerLive()){
-                event.reply("Du kannst keinen manuellen Mapvote für die erste Live Runde machen, da dies automatisiert geschieht!").setEphemeral(true).queue();
-                return;
-            }
-
+            event.reply("Du kannst derzeit keinen manuellen Mapvote durchführen, da dies automatisiert geschieht!").setEphemeral(true).queue();
+            /*
             String layer1 = Objects.requireNonNull(event.getOption("layer1")).getAsString();
             String layer2 = Objects.requireNonNull(event.getOption("layer2")).getAsString();
             String layer3 = Objects.requireNonNull(event.getOption("layer3")).getAsString();
@@ -75,7 +72,7 @@ public class EventHandler extends ListenerAdapter {
 
             battlemetricsService.startScheduledMapvoteBroadcasts(mapvoteModel, false);
             event.reply("Mapvote initiiert. Lehn dich zurück und genieß' die Show!").setEphemeral(true).queue();
-
+            */
 
         }else if (event.getName().equals("mapvote-history")) {
             event.getInteraction().replyEmbeds(mapvoteLogService.createEmbedMapvoteLog()).setEphemeral(true).queue();

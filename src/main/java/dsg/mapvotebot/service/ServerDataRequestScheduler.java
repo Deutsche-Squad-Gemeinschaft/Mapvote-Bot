@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 public class ServerDataRequestScheduler {
     private final BattlemetricsService battlemetricsService;
     private final Configuration configuration;
+    private final MapvoteConditionsAuditor mapvoteConditionsAuditor;
+    private final LiveMapvoteInitiator liveMapvoteInitiator;
     private final ScheduledExecutorService scheduler = Executors
             .newScheduledThreadPool(1);
 
@@ -59,7 +61,10 @@ public class ServerDataRequestScheduler {
                         serverInfo.setLayer(map);
                         serverInfo.setPlayTime(playTime);
 
+                        mapvoteConditionsAuditor.checkForGoodConditions(serverInfo);
                         battlemetricsService.evaluateServerData(serverInfo);
+                        mapvoteConditionsAuditor.checkForNewMatch(serverInfo);
+                        liveMapvoteInitiator.checkForPlayTime(serverInfo);
 
                     } catch (Exception e) {
                         e.printStackTrace();

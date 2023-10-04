@@ -20,6 +20,8 @@ public class PlayerMessage {
     /** The name of the player who sent the message. */
     private String playerName;
 
+    private String playerId;
+
     /** The message itself. */
     private String message;
 }

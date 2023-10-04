@@ -1,7 +1,12 @@
 package dsg.mapvotebot;
 
+import dsg.mapvotebot.api.controller.BattlemetricsController;
+import dsg.mapvotebot.db.entities.GlobalLayerRanking;
+import dsg.mapvotebot.db.entities.ValidLayer;
+import dsg.mapvotebot.db.repositories.ValidLayerRepository;
 import dsg.mapvotebot.discord.Bot;
 import dsg.mapvotebot.service.BattlemetricsService;
+import dsg.mapvotebot.service.GlobalLayerRankingService;
 import dsg.mapvotebot.service.ServerDataRequestScheduler;
 import net.dv8tion.jda.api.JDA;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +16,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Main class which initiates the software.
@@ -39,6 +47,5 @@ public class MapvoteBotApplication {
 
         Bot bot = applicationContext.getBean(Bot.class);
         JDA jda = bot.startBot();
-
     }
 }

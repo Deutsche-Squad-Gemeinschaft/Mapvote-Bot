@@ -60,6 +60,7 @@ public class BattlemetricsController {
                 playerMessage.setPlayerName(jsonObject.getJSONObject("attributes").getJSONObject("data").getString("playerName"));
                 playerMessage.setTimestamp(jsonObject.getJSONObject("attributes").getString("timestamp"));
                 playerMessage.setMessage(jsonObject.getJSONObject("attributes").getJSONObject("data").getString("message"));
+                playerMessage.setPlayerId(jsonObject.getJSONObject("relationships").getJSONObject("players").getJSONArray("data").getJSONObject(0).getString("id"));
                 playerMessages.add(playerMessage);
             }
         }

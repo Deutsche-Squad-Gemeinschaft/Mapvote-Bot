@@ -3,11 +3,8 @@ package dsg.mapvotebot.service;
 import dsg.mapvotebot.api.controller.BattlemetricsController;
 import dsg.mapvotebot.api.model.PlayerMessage;
 import dsg.mapvotebot.api.model.ServerInfo;
-import dsg.mapvotebot.db.entities.GlobalLayerRanking;
-import dsg.mapvotebot.db.entities.MapvoteLog;
-import dsg.mapvotebot.db.entities.ValidLayer;
-import dsg.mapvotebot.db.repositories.MapvoteLogRepository;
-import dsg.mapvotebot.db.repositories.ValidLayerRepository;
+import dsg.mapvotebot.db.entities.*;
+import dsg.mapvotebot.db.repositories.*;
 import dsg.mapvotebot.model.MapvoteModel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +38,14 @@ public class BattlemetricsService {
     private final MapvoteLogRepository mapvoteLogRepository;
     private final ValidLayerRepository validLayerRepository;
     private final GlobalLayerRankingService globalLayerRankingService;
+    private final MapvoteConditionsAuditor mapvoteConditionsAuditor;
+    private final LastLoggedGamemodesRepository lastLoggedGamemodesRepository;
+    private final LastLoggedMapsRepository lastLoggedMapsRepository;
+    private final GlobalLayerRankingRepository globalLayerRankingRepository;
+    private final LastLoggedWipeRepository lastLoggedWipeRepository;
+    private final LastLoggedWipeService lastLoggedWipeService;
+    private final LastLoggedMatchRepository lastLoggedMatchRepository;
+    private final VotersLeaderboardService votersLeaderboardService;
 
     /** List of all valid layers to verify the spelling. */
     private List<ValidLayer> validLayers;
@@ -171,6 +176,7 @@ public class BattlemetricsService {
                     if (!voters.containsKey(playerMessage.getPlayerName())) {
                         voters.put(playerMessage.getPlayerName(), playerMessage.getMessage());
                         mapvotes.put(playerMessage.getMessage(), mapvotes.get(playerMessage.getMessage()) + 1);
+                        votersLeaderboardService.increaseVoteNumberForPlayer(playerMessage.getPlayerId(), playerMessage.getPlayerName());
                     } else {
                         String voteBefore = voters.get(playerMessage.getPlayerName());
                         mapvotes.put(voteBefore, mapvotes.get(voteBefore) - 1);
@@ -305,9 +311,9 @@ public class BattlemetricsService {
         int player = serverInfo.getPlayers();
         String layer = serverInfo.getLayer();
 
-        if (player > 50) {
+        if (player >= 48) {
             isServerLive = true;
-            if(firstMapIsSet){
+            if(firstMapIsSet && (layer.contains("Seed") || layer.contains("Skirmish"))){
                 battlemetricsController.sendMatchEndsGameLiveBroadcast();
                 Thread.sleep(7000);
                 battlemetricsController.endMatch();
@@ -316,14 +322,36 @@ public class BattlemetricsService {
         }
 
         if (player >= 45 && !isServerLive && !firstLiveMapMapvote) {
+            LastLoggedMatch lastLoggedMatch = lastLoggedMatchRepository.findById(1).get();
+            lastLoggedMatch.setMapvoteInitiated(true);
+            lastLoggedMatchRepository.save(lastLoggedMatch);
             List<GlobalLayerRanking> selectedLayerList = globalLayerRankingService.selectFirstLiveMaps();
             startScheduledMapvoteBroadcasts(createMapvoteBroadcastModel(3, selectedLayerList.get(0).getLayer(), selectedLayerList.get(1).getLayer(), selectedLayerList.get(2).getLayer(), "Automatic FirstLiveMap Mapvote"), true);
             firstLiveMapMapvote = true;
+
+            if(!Objects.equals(String.valueOf(lastLoggedWipeService.getCurrentDayOfYear()), lastLoggedWipeRepository.findById(1).get().getDayOfYear())){
+                LastLoggedGamemodes lastLoggedGamemodes = lastLoggedGamemodesRepository.findById(1).get();
+                lastLoggedGamemodes.setLastGamemode(null);
+                lastLoggedGamemodes.setSecondLastGamemode(null);
+                lastLoggedGamemodes.setCurrentGamemode(mapvoteConditionsAuditor.getGamemode(serverInfo));
+                lastLoggedGamemodesRepository.save(lastLoggedGamemodes);
+
+                LastLoggedMaps lastLoggedMaps = lastLoggedMapsRepository.findById(1).get();
+                lastLoggedMaps.setFourthLastMap(null);
+                lastLoggedMaps.setThirdLastMap(null);
+                lastLoggedMaps.setSecondLastMap(null);
+                lastLoggedMaps.setLastMap(null);
+                lastLoggedMaps.setCurrentMap(globalLayerRankingRepository.findByLayer(serverInfo.getLayer()).getMap());
+                lastLoggedMapsRepository.save(lastLoggedMaps);
+            }
         }
 
         if (player == 0) {
             isServerLive = false;
             firstLiveMapMapvote = false;
+            if(firstMapIsSet){
+                firstMapIsSet = false;
+            }
         }
     }
 
