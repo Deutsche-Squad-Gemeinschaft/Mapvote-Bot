@@ -53,12 +53,12 @@ public class BattlemetricsService {
     /** Indicator if a mapvote is already running. If so, no other mapvote can be started. */
     private boolean mapvoteRunning;
 
-    /** Indicator if server is live. Server is live at 51 players and resets if server has 0 players. */
-    private boolean isServerLive;
+    /** Indicator if server is live. Server is live at 48 players and resets if server has 0 players. */
+    private boolean isServerLive = false;
 
     /** Indicator if the first live map mapvote was started. It starts if the player amount is greater or equal 45 and if firstLiveMapMapvote is false.
       * It resets if server has 0 players. */
-    private boolean firstLiveMapMapvote;
+    private boolean firstLiveMapMapvote = false;
 
     /** Indicator if first map was technically set to prevent seeding match cancellation before the first live map was set.
       * True if mapvote from first live map mapvote was evaluated (and the setMap command was sent). Resets after the seeding match was cancelled.  */
@@ -176,7 +176,7 @@ public class BattlemetricsService {
                     if (!voters.containsKey(playerMessage.getPlayerName())) {
                         voters.put(playerMessage.getPlayerName(), playerMessage.getMessage());
                         mapvotes.put(playerMessage.getMessage(), mapvotes.get(playerMessage.getMessage()) + 1);
-                        votersLeaderboardService.increaseVoteNumberForPlayer(playerMessage.getPlayerId(), playerMessage.getPlayerName());
+                        //votersLeaderboardService.increaseVoteNumberForPlayer(playerMessage.getPlayerId(), playerMessage.getPlayerName());
                     } else {
                         String voteBefore = voters.get(playerMessage.getPlayerName());
                         mapvotes.put(voteBefore, mapvotes.get(voteBefore) - 1);
@@ -312,7 +312,9 @@ public class BattlemetricsService {
         String layer = serverInfo.getLayer();
 
         if (player >= 48) {
-            isServerLive = true;
+            if((!layer.contains("Seed") && !layer.contains("Skirmish")) || (layer.contains("Seed") || layer.contains("Skirmish") && firstLiveMapMapvote)) {
+                isServerLive = true;
+            }
             if(firstMapIsSet && (layer.contains("Seed") || layer.contains("Skirmish"))){
                 battlemetricsController.sendMatchEndsGameLiveBroadcast();
                 Thread.sleep(7000);
@@ -343,12 +345,15 @@ public class BattlemetricsService {
                 lastLoggedMaps.setLastMap(null);
                 lastLoggedMaps.setCurrentMap(globalLayerRankingRepository.findByLayer(serverInfo.getLayer()).getMap());
                 lastLoggedMapsRepository.save(lastLoggedMaps);
+
+                lastLoggedWipeService.updateCurrentDayOfYear();
             }
         }
 
         if (player == 0) {
             isServerLive = false;
             firstLiveMapMapvote = false;
+            //TODO makes no sense?!
             if(firstMapIsSet){
                 firstMapIsSet = false;
             }
