@@ -43,6 +43,8 @@ public class GlobalLayerRanking {
     /** Times of which a layer appeared in mapvotes in the past. */
     private int appearance;
 
+    private boolean layerWithoutAppearancePriority;
+
     /** "K-Factor" which regulates the impact on how much elo a layer gaines or loses after winning or failing a mapvote. */
     private int levelOfDevelopment;
 

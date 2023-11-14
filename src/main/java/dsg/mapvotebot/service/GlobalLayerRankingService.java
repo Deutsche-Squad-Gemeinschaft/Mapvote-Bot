@@ -187,6 +187,7 @@ public class GlobalLayerRankingService {
             boolean alreadyInList = false;
 
             //make sure that layer with low appearance get picked. Otherwise, pick layer based on elo. (This ensures that new layer will get the opportunity to be played more after update)
+            //TODO run does not guarantee running through all lowAppLayer
             if (run >= lowAppearanceLayer.size()) {
                 int max = decimatedPossibleLayer.size();
                 int range = max - min + 1;
@@ -239,7 +240,7 @@ public class GlobalLayerRankingService {
         GlobalLayerRanking randomMap;
 
         if(goodConditions && checkIfLastPlayedGamemodesAllSame()){
-            //code for two special layer
+            //code for two special layers
             List<GlobalLayerRanking> decimatedPossibleRAASLayer = decimatePossibleLayerByAverageElo(possibleRAASLayer, 100);
             List<GlobalLayerRanking> decimatedPossibleSpecialLayer = decimatePossibleLayerByAverageElo(possibleSpecialLayer, 80);
 
@@ -494,7 +495,7 @@ public class GlobalLayerRankingService {
         List<GlobalLayerRanking> layerList = new ArrayList<>();
         for (GlobalLayerRanking layer : layerSet) {
             //TODO Property: Appearance of Layer which will be picked for Mapvote with a much higher chance
-            if (layer.getAppearance() <= 7) {
+            if (layer.getAppearance() <= 7 && !layer.isLayerWithoutAppearancePriority()) {
                 layerList.add(layer);
             }
         }
