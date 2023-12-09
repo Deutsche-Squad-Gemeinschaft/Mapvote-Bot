@@ -43,7 +43,7 @@ public class MapvoteLogService {
         for (String s : mapvoteLogsList) {
             EmbedBuilder eb = new EmbedBuilder();
 
-            eb.setTitle("Mapvote Historie " + fmt.print(getDateTimeNow().minusDays(7).plusHours(2)) + " - " + fmt.print(getDateTimeNow().plusHours(2)), null);
+            eb.setTitle("Mapvote Historie " + fmt.print(getDateTimeNow().minusDays(3).plusHours(2)) + " - " + fmt.print(getDateTimeNow().plusHours(2)), null);
             eb.setColor(new Color(255, 196, 12));
             eb.setDescription(s);
             embeds.add(eb.build());
@@ -79,7 +79,7 @@ public class MapvoteLogService {
             String dateTime = mapvoteLog.getMapvoteStart();
             DateTime dt = formatter.parseDateTime(dateTime);
 
-            if (dt.plusDays(7).isAfter(dateTimeNowUTC)){
+            if (dt.plusDays(3).isAfter(dateTimeNowUTC)){
                 logEntrys = logEntrys.concat(
                                         "**Admin:** " + mapvoteLog.getAdminName() + "\n" +
                                             "**Start:** " + fmt.print(dt.plusHours(2)) + "\n" +

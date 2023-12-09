@@ -32,7 +32,6 @@ public class BattlemetricsController {
      * @throws IOException
      */
     public List<PlayerMessage> getChatData() throws IOException {
-
         String rconUrl = "https://api.battlemetrics.com/activity?version=%5E0.1.0&tagTypeMode=and&filter%5Btypes%5D%5Bblacklist%5D=event%3Aquery&filter%5Bservers%5D=3219649&include=organization%2Cuser&page%5Bsize%5D=100&access_token=" + configuration.getBattlemetricsApiToken() + "&audit_log=t%3DRCON%20Server%3Bp%3D%2Frcon%2Fservers%2F3219649%3Bh%3D225c05a3-65fb-4b28-9ee9-0a416352bdd9%3Bid%3Df663c89b-ba29-499f-8f38-93eb2230b749";
 
         // Set up the HTTP connection
@@ -51,6 +50,20 @@ public class BattlemetricsController {
 
         List<PlayerMessage> playerMessages = new ArrayList<>();
 
+        String nextrconUrl = jsonResponse.getJSONObject("links").get("next").toString();
+        URL nextUrl = new URL(nextrconUrl);
+        HttpURLConnection nextCon = (HttpURLConnection) nextUrl.openConnection();
+        nextCon.setRequestMethod("GET");
+        nextCon.setRequestProperty("Content-Type", "application/json");
+        nextCon.setDoOutput(true);
+        nextCon.setRequestProperty("Authorization", configuration.getBattlemetricsApiTokenRcon());
+        BufferedReader nextIn = new BufferedReader(new InputStreamReader(nextCon.getInputStream()));
+        String nextResponse = nextIn.readLine();
+        nextIn.close();
+        JSONObject jsonNextResponse = new JSONObject(nextResponse);
+        int j = jsonNextResponse.getJSONArray("data").length() - 1;
+
+
         int i = jsonResponse.getJSONArray("data").length() - 1;
         for (i = i; i != 0; i--) {
             JSONObject jsonObject = (JSONObject) jsonResponse.getJSONArray("data").get(i);
@@ -64,6 +77,20 @@ public class BattlemetricsController {
                 playerMessages.add(playerMessage);
             }
         }
+
+        for (j = j; j != 0; j--) {
+            JSONObject jsonObject = (JSONObject) jsonNextResponse.getJSONArray("data").get(j);
+            if (jsonObject.getJSONObject("attributes").getString("messageType").equals("playerMessage")) {
+                //System.out.println(jsonObject.getJSONObject("attributes").getString("timestamp")+ " ("+jsonObject.getJSONObject("attributes").getJSONObject("data").getString("channel")+") "+jsonObject.getJSONObject("attributes").getJSONObject("data").getString("playerName") + ": "+ jsonObject.getJSONObject("attributes").getJSONObject("data").getString("message"));
+                PlayerMessage playerMessage = new PlayerMessage();
+                playerMessage.setPlayerName(jsonObject.getJSONObject("attributes").getJSONObject("data").getString("playerName"));
+                playerMessage.setTimestamp(jsonObject.getJSONObject("attributes").getString("timestamp"));
+                playerMessage.setMessage(jsonObject.getJSONObject("attributes").getJSONObject("data").getString("message"));
+                //playerMessage.setPlayerId(jsonObject.getJSONObject("relationships").getJSONObject("players").getJSONArray("data").getJSONObject(0).getString("id"));
+                playerMessages.add(playerMessage);
+            }
+        }
+
         return playerMessages;
     }
 

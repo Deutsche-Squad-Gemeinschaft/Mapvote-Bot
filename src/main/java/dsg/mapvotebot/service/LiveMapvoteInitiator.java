@@ -29,13 +29,13 @@ public class LiveMapvoteInitiator {
         LastLoggedGamemodes lastLoggedGamemodes = lastLoggedGamemodesRepository.findById(1).get();
         LastLoggedMatch lastLoggedMatch = lastLoggedMatchRepository.findById(1).get();
 
-        if(serverInfo.getPlayTime() >= 900 && !lastLoggedMatch.isMapvoteInitiated() && (lastLoggedGamemodes.getLastGamemode().equals("Seed") || lastLoggedGamemodes.getLastGamemode().equals("Skirmish")) && (!lastLoggedGamemodes.getCurrentGamemode().equals("Seed") && !lastLoggedGamemodes.getCurrentGamemode().equals("Skirmish"))){
+        if(serverInfo.getPlayTime() >= 900 && !lastLoggedMatch.isMapvoteInitiated() && (lastLoggedGamemodes.getCurrentGamemode().equals("Invasion") || ((lastLoggedGamemodes.getLastGamemode().equals("Seed") || lastLoggedGamemodes.getLastGamemode().equals("Skirmish")) && (!lastLoggedGamemodes.getCurrentGamemode().equals("Seed") && !lastLoggedGamemodes.getCurrentGamemode().equals("Skirmish")))) && serverInfo.getPlayers() > 40){
             lastLoggedMatch.setMapvoteInitiated(true);
             lastLoggedMatchRepository.save(lastLoggedMatch);
             List<GlobalLayerRanking> selectedLayerList = globalLayerRankingService.selectLiveMaps(mapvoteConditionsAuditor.isGoodConditions());
             battlemetricsService.startScheduledMapvoteBroadcasts(battlemetricsService.createMapvoteBroadcastModel(5, selectedLayerList.get(0).getLayer(), selectedLayerList.get(1).getLayer(), selectedLayerList.get(2).getLayer(), "Automatic Mapvote"), false);
 
-        } else if (serverInfo.getPlayTime() >= 1500 && !lastLoggedMatch.isMapvoteInitiated() && (!lastLoggedGamemodes.getCurrentGamemode().equals("Seed") && !lastLoggedGamemodes.getCurrentGamemode().equals("Skirmish"))) {
+        } else if (serverInfo.getPlayTime() >= 900 && !lastLoggedMatch.isMapvoteInitiated() && serverInfo.getPlayers() > 40 && (!lastLoggedGamemodes.getCurrentGamemode().equals("Seed") && !lastLoggedGamemodes.getCurrentGamemode().equals("Skirmish")))  {
             lastLoggedMatch.setMapvoteInitiated(true);
             lastLoggedMatchRepository.save(lastLoggedMatch);
             List<GlobalLayerRanking> selectedLayerList = globalLayerRankingService.selectLiveMaps(mapvoteConditionsAuditor.isGoodConditions());
